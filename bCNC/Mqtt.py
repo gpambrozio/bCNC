@@ -101,6 +101,17 @@ class Mqtt():
 		completed = 100.0 * (self.done - self.low) / self.length
 		jsonToSend["completed"] = completed
 
+		# calculate remaining time
+		dt = time.time() - self.t0
+		p  = self.now - self.low
+		if p > 0:
+			total = dt / p * (self.high - self.low)
+		else:
+			total = 0.0
+		remain = max(0.0, total - dt)
+		jsonToSend["remain_s"] = remain
+		jsonToSend["total_s"] = total
+
 		if self.lastSentState != jsonToSend:
 			self.lastSentState = jsonToSend
 			contentToSend = json.dumps(jsonToSend)
