@@ -118,6 +118,7 @@ class Application(Toplevel,Sender):
 		self.tools = Tools(self.gcode)
 		self.controller = None
 		self.loadConfig()
+		self.mqtt = Mqtt()
 		# --- Ribbon ---
 		self.ribbon = Ribbon.TabRibbonFrame(self)
 		self.ribbon.pack(side=TOP, fill=X)
@@ -487,7 +488,6 @@ class Application(Toplevel,Sender):
 		if _openserial and Utils.getBool("Connection","openserial"):
 			self.openClose()
 
-		self.mqtt = Mqtt()
 		self.mqtt.start()
 
 		# Filedialog Load history
