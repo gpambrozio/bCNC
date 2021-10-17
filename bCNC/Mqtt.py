@@ -12,6 +12,7 @@ __email__  = "gustavo@gustavo.eng.br"
 import json
 import sys
 import threading
+import time
 
 from CNC import CNC
 from Utils import config
@@ -42,6 +43,7 @@ class Mqtt():
 			sys.stdout.write("No broker specified, bailing\n")
 			return
 
+		self.setLimits()
 		self.connected = False
 		self.client = mqtt.Client("bCNC")
 		self.client.on_connect = self.on_connect
@@ -61,11 +63,44 @@ class Mqtt():
 		if self.client is None: return
 		self.client.loop_stop()
 
+	def setLimits(self, low=0.0, high=100.0, step=1.0):
+		self.low    = float(low)
+		self.high   = float(high)
+		self.length = float(high-low)
+		self.step   = float(step)
+		self.done   = float(low)
+		self.now    = float(low)
+		self.t0     = time.time()
+
+	def setProgress(self, now, done=None):
+		self.now = now
+		if self.now < self.low:
+			self.now = self.low
+		elif self.now > self.high:
+			self.now = self.high
+
+		if done is None:
+			self.done = now - self.step
+		else:
+			self.done = done
+
+		if self.done < self.low:
+			self.done = self.low
+		elif self.done > self.high:
+			self.done = self.high
+
+	def clear(self):
+		self.setProgress(0, 0);
+
 	def sendStatus(self):
 		if self.client is None or not self.connected:
 			return
 		to_send = ["controller", "state", "pins", "color", "msg", "wx", "wy", "wz", "wa", "wb", "wc", "mx", "my", "mz", "ma", "mb", "mc", "G", "running"]
 		jsonToSend = {name: CNC.vars[name] for name in to_send}
+
+		completed = 100.0 * (self.done - self.low) / self.length
+		jsonToSend["completed"] = completed
+
 		if self.lastSentState != jsonToSend:
 			self.lastSentState = jsonToSend
 			contentToSend = json.dumps(jsonToSend)

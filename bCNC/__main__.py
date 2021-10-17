@@ -595,6 +595,7 @@ class Application(Toplevel,Sender):
 		self.configWidgets("state",NORMAL)
 		self.statusbar.clear()
 		self.statusbar.config(background="LightGray")
+		self.mqtt.clear()
 		self.bufferbar.clear()
 		self.bufferbar.config(background="LightGray")
 		self.bufferbar.setText("")
@@ -2266,7 +2267,10 @@ class Application(Toplevel,Sender):
 			#		parent=self)
 			#	return
 			self.statusbar.setLimits(0, 9999)
-			self.statusbar.setProgress(0,0)
+			self.statusbar.setProgress(0, 0)
+
+			self.mqtt.setLimits(0, 9999)
+			self.mqtt.setProgress(0, 0)
 
 			#class MyQueue:
 			#	def put(self,line):
@@ -2321,6 +2325,8 @@ class Application(Toplevel,Sender):
 		self.statusbar.setLimits(0, self._runLines)
 		self.statusbar.configText(fill="White")
 		self.statusbar.config(background="DarkGray")
+
+		self.mqtt.setLimits(0, self._runLines)
 
 		self.bufferbar.configText(fill="White")
 		self.bufferbar.config(background="DarkGray")
@@ -2491,6 +2497,8 @@ class Application(Toplevel,Sender):
 
 		if self.running:
 			self.statusbar.setProgress(self._runLines-self.queue.qsize(),
+						self._gcount)
+			self.mqtt.setProgress(self._runLines-self.queue.qsize(),
 						self._gcount)
 			CNC.vars["msg"] = self.statusbar.msg
 			self.bufferbar.setProgress(Sender.getBufferFill(self))
