@@ -60,6 +60,7 @@ import tkDialogs
 from CNC import WAIT, CNC, GCode
 import Ribbon
 import Pendant
+from Mqtt import Mqtt
 from Sender import Sender, NOT_CONNECTED, STATECOLOR, STATECOLORDEF
 
 import CNCCanvas
@@ -485,6 +486,9 @@ class Application(Toplevel,Sender):
 
 		if _openserial and Utils.getBool("Connection","openserial"):
 			self.openClose()
+
+		self.mqtt = Mqtt()
+		self.mqtt.start()
 
 		# Filedialog Load history
 		for i in range(Utils._maxRecent):
