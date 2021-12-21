@@ -55,8 +55,12 @@ class Mqtt():
 	def start(self):
 		if self.client is None: return
 		sys.stdout.write("MQTT start called\n")
-		self.client.connect(self.broker_address)
-		self.client.loop_start()
+		try:
+			self.client.connect(self.broker_address)
+			self.client.loop_start()
+		except:
+			sys.stdout.write("Error connecting to broker\n")
+			return
 		sys.stdout.write("MQTT started loop\n")
 
 	def stop(self):
