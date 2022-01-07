@@ -390,6 +390,19 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 		self.loadConfig()
 
 	#-----------------------------------------------------------------------
+	def updateProbe(self):
+		try:
+			self._probeX["text"] = CNC.vars.get("prbx")
+			self._probeY["text"] = CNC.vars.get("prby")
+			self._probeZ["text"] = CNC.vars.get("prbz")
+		except:
+			return
+
+		if self.probeautogotonext:
+			self.probeautogotonext = False
+			self.goto2Probe()
+
+	#-----------------------------------------------------------------------
 	# Rapid move to the last probed location
 	#-----------------------------------------------------------------------
 	def goto2Probe(self, event=None):
@@ -747,19 +760,6 @@ class ProbeFrame(CNCRibbon.PageFrame):
 	def saveConfig(self):
 		Utils.setFloat("Probe", "center", self.diameter.get())
 		Utils.setBool("Warning","probe",  self.warn)
-
-	#-----------------------------------------------------------------------
-	def updateProbe(self):
-		try:
-			self._probeX["text"] = CNC.vars.get("prbx")
-			self._probeY["text"] = CNC.vars.get("prby")
-			self._probeZ["text"] = CNC.vars.get("prbz")
-		except:
-			return
-
-		if self.probeautogotonext:
-			self.probeautogotonext = False
-			self.goto2Probe()
 
 	#-----------------------------------------------------------------------
 	def warnMessage(self):
