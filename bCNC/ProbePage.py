@@ -411,7 +411,6 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 				_("Invalid probe feed rate"),
 				parent=self.winfo_toplevel())
 			return
-		self.warnMessage()
 
 		cmd = str(CNC.vars["prbcmd"])
 		ok = False
