@@ -298,126 +298,6 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 		self.addWidget(ProbeCommonFrame.probeCmd)
 
 		frame.grid_columnconfigure(1,weight=1)
-		self.loadConfig()
-
-	#------------------------------------------------------------------------
-	def tloSet(self, event=None):
-		try:
-			CNC.vars["TLO"] = float(ProbeCommonFrame.tlo.get())
-			cmd = "G43.1Z%s"%(ProbeCommonFrame.tlo.get())
-			self.sendGCode(cmd)
-		except:
-			pass
-		self.app.mcontrol.viewParameters()
-
-	#------------------------------------------------------------------------
-	@staticmethod
-	def probeUpdate():
-		try:
-			CNC.vars["fastprbfeed"] = float(ProbeCommonFrame.fastProbeFeed.get())
-			CNC.vars["prbfeed"]     = float(ProbeCommonFrame.probeFeed.get())
-			CNC.vars["prbcmd"]      = str(ProbeCommonFrame.probeCmd.get().split()[0])
-			return False
-		except:
-			return True
-
-	#------------------------------------------------------------------------
-	def updateTlo(self):
-		try:
-			if self.focus_get() is not ProbeCommonFrame.tlo:
-				state = ProbeCommonFrame.tlo.cget("state")
-				state = ProbeCommonFrame.tlo["state"] = NORMAL
-				ProbeCommonFrame.tlo.set(str(CNC.vars.get("TLO","")))
-				state = ProbeCommonFrame.tlo["state"] = state
-		except:
-			pass
-
-	#-----------------------------------------------------------------------
-	def saveConfig(self):
-		Utils.setFloat("Probe", "fastfeed", ProbeCommonFrame.fastProbeFeed.get())
-		Utils.setFloat("Probe", "feed", ProbeCommonFrame.probeFeed.get())
-		Utils.setFloat("Probe", "tlo",  ProbeCommonFrame.tlo.get())
-		Utils.setFloat("Probe", "cmd",  ProbeCommonFrame.probeCmd.get().split()[0])
-
-	#-----------------------------------------------------------------------
-	def loadConfig(self):
-		ProbeCommonFrame.fastProbeFeed.set(Utils.getFloat("Probe","fastfeed"))
-		ProbeCommonFrame.probeFeed.set(Utils.getFloat("Probe","feed"))
-		ProbeCommonFrame.tlo.set(      Utils.getFloat("Probe","tlo"))
-		cmd = Utils.getStr("Probe","cmd")
-		for p in PROBE_CMD:
-			if p.split()[0] == cmd:
-				ProbeCommonFrame.probeCmd.set(p)
-				break
-
-
-#===============================================================================
-# Probe Frame
-#===============================================================================
-class ProbeFrame(CNCRibbon.PageFrame):
-	def __init__(self, master, app):
-		CNCRibbon.PageFrame.__init__(self, master, "Probe:Probe", app)
-
-		#----------------------------------------------------------------
-		# Record point
-		#----------------------------------------------------------------
-
-		recframe = tkExtra.ExLabelFrame(self, text=_("Record"), foreground="DarkBlue")
-		recframe.pack(side=TOP, expand=YES, fill=X)
-
-		#Label(lframe(), text=_("Diameter:")).pack(side=LEFT)
-		#self.diameter = tkExtra.FloatEntry(lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		#self.diameter.pack(side=LEFT, expand=YES, fill=X)
-
-		self.recz=IntVar()
-		self.reczb = Checkbutton(recframe(), text=_("Z"),
-			variable=self.recz, #onvalue=1, offvalue=0,
-			activebackground="LightYellow",
-			padx=2, pady=1)
-		tkExtra.Balloon.set(self.reczb, _("Record Z coordinate?"))
-		self.reczb.pack(side=LEFT, expand=YES, fill=X)
-		self.addWidget(self.reczb)
-
-		self.rr = Button(recframe(), text=_("RAPID"),
-			command=self.recordRapid,
-			activebackground="LightYellow",
-			padx=2, pady=1)
-		self.rr.pack(side=LEFT, expand=YES, fill=X)
-		self.addWidget(self.rr)
-
-		self.rr = Button(recframe(), text=_("FEED"),
-			command=self.recordFeed,
-			activebackground="LightYellow",
-			padx=2, pady=1)
-		self.rr.pack(side=LEFT, expand=YES, fill=X)
-		self.addWidget(self.rr)
-
-		self.rr = Button(recframe(), text=_("POINT"),
-			command=self.recordPoint,
-			activebackground="LightYellow",
-			padx=2, pady=1)
-		self.rr.pack(side=LEFT, expand=YES, fill=X)
-		self.addWidget(self.rr)
-
-		self.rr = Button(recframe(), text=_("CIRCLE"),
-			command=self.recordCircle,
-			activebackground="LightYellow",
-			padx=2, pady=1)
-		self.rr.pack(side=LEFT, expand=YES, fill=X)
-		self.addWidget(self.rr)
-
-		self.rr = Button(recframe(), text=_("FINISH"),
-			command=self.recordFinishAll,
-			activebackground="LightYellow",
-			padx=2, pady=1)
-		self.rr.pack(side=LEFT, expand=YES, fill=X)
-		self.addWidget(self.rr)
-
-		self.recsiz = tkExtra.FloatEntry(recframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
-		tkExtra.Balloon.set(self.recsiz, _("Circle radius"))
-		self.recsiz.set(10)
-		self.recsiz.pack(side=BOTTOM, expand=YES, fill=X)
-		self.addWidget(self.recsiz)
 
 		#----------------------------------------------------------------
 		# Single probe
@@ -506,6 +386,185 @@ class ProbeFrame(CNCRibbon.PageFrame):
 		lframe().grid_columnconfigure(1,weight=1)
 		lframe().grid_columnconfigure(2,weight=1)
 		lframe().grid_columnconfigure(3,weight=1)
+
+		self.loadConfig()
+
+	#-----------------------------------------------------------------------
+	# Rapid move to the last probed location
+	#-----------------------------------------------------------------------
+	def goto2Probe(self, event=None):
+		try:
+			cmd = "G53 G0 X%g Y%g Z%g\n"%(CNC.vars["prbx"], CNC.vars["prby"], CNC.vars["prbz"])
+		except:
+			return
+		self.sendGCode(cmd)
+
+	#-----------------------------------------------------------------------
+	# Probe one Point
+	#-----------------------------------------------------------------------
+	def probe(self, event=None):
+		if self.probeautogoto.get() == 1:
+			self.probeautogotonext = True
+
+		if ProbeCommonFrame.probeUpdate():
+			tkMessageBox.showerror(_("Probe Error"),
+				_("Invalid probe feed rate"),
+				parent=self.winfo_toplevel())
+			return
+		self.warnMessage()
+
+		cmd = str(CNC.vars["prbcmd"])
+		ok = False
+
+		v = self.probeXdir.get()
+		if v != "":
+			cmd += "X%s"%(v)
+			ok = True
+
+		v = self.probeYdir.get()
+		if v != "":
+			cmd += "Y%s"%(v)
+			ok = True
+
+		v = self.probeZdir.get()
+		if v != "":
+			cmd += "Z%s"%(v)
+			ok = True
+
+		v = ProbeCommonFrame.probeFeed.get()
+		if v != "":
+			cmd += "F%s"%(v)
+
+		if ok:
+			self.sendGCode(cmd)
+		else:
+			tkMessageBox.showerror(_("Probe Error"),
+					_("At least one probe direction should be specified"))
+
+	#------------------------------------------------------------------------
+	def tloSet(self, event=None):
+		try:
+			CNC.vars["TLO"] = float(ProbeCommonFrame.tlo.get())
+			cmd = "G43.1Z%s"%(ProbeCommonFrame.tlo.get())
+			self.sendGCode(cmd)
+		except:
+			pass
+		self.app.mcontrol.viewParameters()
+
+	#------------------------------------------------------------------------
+	@staticmethod
+	def probeUpdate():
+		try:
+			CNC.vars["fastprbfeed"] = float(ProbeCommonFrame.fastProbeFeed.get())
+			CNC.vars["prbfeed"]     = float(ProbeCommonFrame.probeFeed.get())
+			CNC.vars["prbcmd"]      = str(ProbeCommonFrame.probeCmd.get().split()[0])
+			return False
+		except:
+			return True
+
+	#------------------------------------------------------------------------
+	def updateTlo(self):
+		try:
+			if self.focus_get() is not ProbeCommonFrame.tlo:
+				state = ProbeCommonFrame.tlo.cget("state")
+				state = ProbeCommonFrame.tlo["state"] = NORMAL
+				ProbeCommonFrame.tlo.set(str(CNC.vars.get("TLO","")))
+				state = ProbeCommonFrame.tlo["state"] = state
+		except:
+			pass
+
+	#-----------------------------------------------------------------------
+	def saveConfig(self):
+		Utils.setFloat("Probe", "x",      self.probeXdir.get())
+		Utils.setFloat("Probe", "y",      self.probeYdir.get())
+		Utils.setFloat("Probe", "z",      self.probeZdir.get())
+		Utils.setFloat("Probe", "fastfeed", ProbeCommonFrame.fastProbeFeed.get())
+		Utils.setFloat("Probe", "feed", ProbeCommonFrame.probeFeed.get())
+		Utils.setFloat("Probe", "tlo",  ProbeCommonFrame.tlo.get())
+		Utils.setFloat("Probe", "cmd",  ProbeCommonFrame.probeCmd.get().split()[0])
+
+	#-----------------------------------------------------------------------
+	def loadConfig(self):
+		self.probeXdir.set(Utils.getStr("Probe", "x"))
+		self.probeYdir.set(Utils.getStr("Probe", "y"))
+		self.probeZdir.set(Utils.getStr("Probe", "z"))
+		ProbeCommonFrame.fastProbeFeed.set(Utils.getFloat("Probe","fastfeed"))
+		ProbeCommonFrame.probeFeed.set(Utils.getFloat("Probe","feed"))
+		ProbeCommonFrame.tlo.set(      Utils.getFloat("Probe","tlo"))
+		cmd = Utils.getStr("Probe","cmd")
+		for p in PROBE_CMD:
+			if p.split()[0] == cmd:
+				ProbeCommonFrame.probeCmd.set(p)
+				break
+
+
+#===============================================================================
+# Probe Frame
+#===============================================================================
+class ProbeFrame(CNCRibbon.PageFrame):
+	def __init__(self, master, app):
+		CNCRibbon.PageFrame.__init__(self, master, "Probe:Probe", app)
+
+		#----------------------------------------------------------------
+		# Record point
+		#----------------------------------------------------------------
+
+		recframe = tkExtra.ExLabelFrame(self, text=_("Record"), foreground="DarkBlue")
+		recframe.pack(side=TOP, expand=YES, fill=X)
+
+		#Label(lframe(), text=_("Diameter:")).pack(side=LEFT)
+		#self.diameter = tkExtra.FloatEntry(lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
+		#self.diameter.pack(side=LEFT, expand=YES, fill=X)
+
+		self.recz=IntVar()
+		self.reczb = Checkbutton(recframe(), text=_("Z"),
+			variable=self.recz, #onvalue=1, offvalue=0,
+			activebackground="LightYellow",
+			padx=2, pady=1)
+		tkExtra.Balloon.set(self.reczb, _("Record Z coordinate?"))
+		self.reczb.pack(side=LEFT, expand=YES, fill=X)
+		self.addWidget(self.reczb)
+
+		self.rr = Button(recframe(), text=_("RAPID"),
+			command=self.recordRapid,
+			activebackground="LightYellow",
+			padx=2, pady=1)
+		self.rr.pack(side=LEFT, expand=YES, fill=X)
+		self.addWidget(self.rr)
+
+		self.rr = Button(recframe(), text=_("FEED"),
+			command=self.recordFeed,
+			activebackground="LightYellow",
+			padx=2, pady=1)
+		self.rr.pack(side=LEFT, expand=YES, fill=X)
+		self.addWidget(self.rr)
+
+		self.rr = Button(recframe(), text=_("POINT"),
+			command=self.recordPoint,
+			activebackground="LightYellow",
+			padx=2, pady=1)
+		self.rr.pack(side=LEFT, expand=YES, fill=X)
+		self.addWidget(self.rr)
+
+		self.rr = Button(recframe(), text=_("CIRCLE"),
+			command=self.recordCircle,
+			activebackground="LightYellow",
+			padx=2, pady=1)
+		self.rr.pack(side=LEFT, expand=YES, fill=X)
+		self.addWidget(self.rr)
+
+		self.rr = Button(recframe(), text=_("FINISH"),
+			command=self.recordFinishAll,
+			activebackground="LightYellow",
+			padx=2, pady=1)
+		self.rr.pack(side=LEFT, expand=YES, fill=X)
+		self.addWidget(self.rr)
+
+		self.recsiz = tkExtra.FloatEntry(recframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND)
+		tkExtra.Balloon.set(self.recsiz, _("Circle radius"))
+		self.recsiz.set(10)
+		self.recsiz.pack(side=BOTTOM, expand=YES, fill=X)
+		self.addWidget(self.recsiz)
 
 		#----------------------------------------------------------------
 		# Center probing
@@ -682,17 +741,11 @@ class ProbeFrame(CNCRibbon.PageFrame):
 
 	#-----------------------------------------------------------------------
 	def loadConfig(self):
-		self.probeXdir.set(Utils.getStr("Probe", "x"))
-		self.probeYdir.set(Utils.getStr("Probe", "y"))
-		self.probeZdir.set(Utils.getStr("Probe", "z"))
 		self.diameter.set(Utils.getStr("Probe",  "center"))
 		self.warn = Utils.getBool("Warning", "probe", self.warn)
 
 	#-----------------------------------------------------------------------
 	def saveConfig(self):
-		Utils.setFloat("Probe", "x",      self.probeXdir.get())
-		Utils.setFloat("Probe", "y",      self.probeYdir.get())
-		Utils.setFloat("Probe", "z",      self.probeZdir.get())
 		Utils.setFloat("Probe", "center", self.diameter.get())
 		Utils.setBool("Warning","probe",  self.warn)
 
@@ -709,7 +762,6 @@ class ProbeFrame(CNCRibbon.PageFrame):
 			self.probeautogotonext = False
 			self.goto2Probe()
 
-
 	#-----------------------------------------------------------------------
 	def warnMessage(self):
 		if self.warn:
@@ -719,48 +771,6 @@ class ProbeFrame(CNCRibbon.PageFrame):
 				parent=self.winfo_toplevel())
 			if ans != YES:
 				self.warn = False
-
-	#-----------------------------------------------------------------------
-	# Probe one Point
-	#-----------------------------------------------------------------------
-	def probe(self, event=None):
-		if self.probeautogoto.get() == 1:
-			self.probeautogotonext = True
-
-		if ProbeCommonFrame.probeUpdate():
-			tkMessageBox.showerror(_("Probe Error"),
-				_("Invalid probe feed rate"),
-				parent=self.winfo_toplevel())
-			return
-		self.warnMessage()
-
-		cmd = str(CNC.vars["prbcmd"])
-		ok = False
-
-		v = self.probeXdir.get()
-		if v != "":
-			cmd += "X%s"%(v)
-			ok = True
-
-		v = self.probeYdir.get()
-		if v != "":
-			cmd += "Y%s"%(v)
-			ok = True
-
-		v = self.probeZdir.get()
-		if v != "":
-			cmd += "Z%s"%(v)
-			ok = True
-
-		v = ProbeCommonFrame.probeFeed.get()
-		if v != "":
-			cmd += "F%s"%(v)
-
-		if ok:
-			self.sendGCode(cmd)
-		else:
-			tkMessageBox.showerror(_("Probe Error"),
-					_("At least one probe direction should be specified"))
 
 	#-----------------------------------------------------------------------
 	# Rapid move to the last probed location
