@@ -467,7 +467,20 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
         self.addWidget(self.probeZdir)
 
         # ---
-        col += 2
+        col += 1
+        self.probeautozeronext = False
+        self.probeautozero=IntVar()
+        self.autozero = Checkbutton(lframe(), "",
+            variable=self.probeautozero, #onvalue=1, offvalue=0,
+            activebackground="LightYellow",
+            padx=2, pady=1)
+        self.autozero.select()
+        tkExtra.Balloon.set(self.autozero, _("Automatic zero axis after probing"))
+        self.autozero.grid(row=row, column=col, padx=1, sticky=EW)
+        self.addWidget(self.autozero)
+
+        # ---
+        col += 1
         b = Button(
             lframe(),  # "<<Probe>>",
             image=Utils.icons["probe32"],
@@ -500,12 +513,19 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
             self.probeautogotonext = False
             self.goto2Probe()
 
+        if self.probeautozeronext:
+            self.probeautozeronext = False
+            self.app.mcontrol._wcsSet("0", "0", "0", None, None, None)
+
     # -----------------------------------------------------------------------
     # Probe one Point
     # -----------------------------------------------------------------------
     def probe(self, event=None):
         if self.probeautogoto.get() == 1:
             self.probeautogotonext = True
+
+        if self.probeautozero.get() == 1:
+            self.probeautozeronext = True
 
         if ProbeCommonFrame.probeUpdate():
             messagebox.showerror(
