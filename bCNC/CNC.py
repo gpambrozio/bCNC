@@ -302,7 +302,7 @@ class Probe:
             x -= xstep
             xstep = -xstep
         lines.append(f"G0Z{self.zmax:.4f}")
-        lines.append(f"G0X{self.xmin:.4f}Y{self.ymin:.4f}")
+        lines.append(f"G0X0Y0")
         return lines
 
     # ----------------------------------------------------------------------
