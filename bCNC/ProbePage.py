@@ -380,7 +380,184 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
         self.addWidget(ProbeCommonFrame.probeCmd)
 
         frame.grid_columnconfigure(1, weight=1)
+
+        # ----------------------------------------------------------------
+        # Single probe
+        # ----------------------------------------------------------------
+        lframe = tkExtra.ExLabelFrame(
+            self, text=_("Probe"), foreground="DarkBlue")
+        lframe.pack(side=TOP, fill=X)
+
+        row, col = 0, 0
+        Label(lframe(), text=_("Probe:")).grid(row=row, column=col, sticky=E)
+
+        col += 1
+        self._probeX = Label(
+            lframe(), foreground="DarkBlue", background="gray90")
+        self._probeX.grid(row=row, column=col, padx=1, sticky=EW + S)
+
+        col += 1
+        self._probeY = Label(
+            lframe(), foreground="DarkBlue", background="gray90")
+        self._probeY.grid(row=row, column=col, padx=1, sticky=EW + S)
+
+        col += 1
+        self._probeZ = Label(
+            lframe(), foreground="DarkBlue", background="gray90")
+        self._probeZ.grid(row=row, column=col, padx=1, sticky=EW + S)
+
+        # ---
+        col += 1
+        self.probeautogotonext = False
+        self.probeautogoto = IntVar()
+        self.autogoto = Checkbutton(
+            lframe(),
+            "",
+            variable=self.probeautogoto,
+            activebackground="LightYellow",
+            padx=2,
+            pady=1,
+        )
+        self.autogoto.select()
+        tkExtra.Balloon.set(self.autogoto, _("Automatic GOTO after probing"))
+        self.autogoto.grid(row=row, column=col, padx=1, sticky=EW)
+        self.addWidget(self.autogoto)
+
+        # ---
+        col += 1
+        b = Button(
+            lframe(),
+            image=Utils.icons["rapid"],
+            text=_("Goto"),
+            compound=LEFT,
+            command=self.goto2Probe,
+            padx=5,
+            pady=0,
+        )
+        b.grid(row=row, column=col, padx=1, sticky=EW)
+        self.addWidget(b)
+        tkExtra.Balloon.set(b, _("Rapid goto to last probe location"))
+
+        # ---
+        row, col = row + 1, 0
+        Label(lframe(), text=_("Pos:")).grid(row=row, column=col, sticky=E)
+
+        col += 1
+        self.probeXdir = tkExtra.FloatEntry(
+            lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND
+        )
+        self.probeXdir.grid(row=row, column=col, sticky=EW)
+        tkExtra.Balloon.set(self.probeXdir, _("Probe along X direction"))
+        self.addWidget(self.probeXdir)
+
+        col += 1
+        self.probeYdir = tkExtra.FloatEntry(
+            lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND
+        )
+        self.probeYdir.grid(row=row, column=col, sticky=EW)
+        tkExtra.Balloon.set(self.probeYdir, _("Probe along Y direction"))
+        self.addWidget(self.probeYdir)
+
+        col += 1
+        self.probeZdir = tkExtra.FloatEntry(
+            lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND
+        )
+        self.probeZdir.grid(row=row, column=col, sticky=EW)
+        tkExtra.Balloon.set(self.probeZdir, _("Probe along Z direction"))
+        self.addWidget(self.probeZdir)
+
+        # ---
+        col += 2
+        b = Button(
+            lframe(),  # "<<Probe>>",
+            image=Utils.icons["probe32"],
+            text=_("Probe"),
+            compound=LEFT,
+            command=self.probe,
+            padx=5,
+            pady=0,
+        )
+        b.grid(row=row, column=col, padx=1, sticky=EW)
+        self.addWidget(b)
+        tkExtra.Balloon.set(b, _("Perform a single probe cycle"))
+
+        lframe().grid_columnconfigure(1, weight=1)
+        lframe().grid_columnconfigure(2, weight=1)
+        lframe().grid_columnconfigure(3, weight=1)
+
         self.loadConfig()
+
+    # -----------------------------------------------------------------------
+    def updateProbe(self):
+        try:
+            self._probeX["text"] = CNC.vars.get("prbx")
+            self._probeY["text"] = CNC.vars.get("prby")
+            self._probeZ["text"] = CNC.vars.get("prbz")
+        except Exception:
+            return
+
+        if self.probeautogotonext:
+            self.probeautogotonext = False
+            self.goto2Probe()
+
+    # -----------------------------------------------------------------------
+    # Probe one Point
+    # -----------------------------------------------------------------------
+    def probe(self, event=None):
+        if self.probeautogoto.get() == 1:
+            self.probeautogotonext = True
+
+        if ProbeCommonFrame.probeUpdate():
+            messagebox.showerror(
+                _("Probe Error"),
+                _("Invalid probe feed rate"),
+                parent=self.winfo_toplevel(),
+            )
+            return
+
+        cmd = str(CNC.vars["prbcmd"])
+        ok = False
+
+        v = self.probeXdir.get()
+        if v != "":
+            cmd += f"X{v}"
+            ok = True
+
+        v = self.probeYdir.get()
+        if v != "":
+            cmd += f"Y{v}"
+            ok = True
+
+        v = self.probeZdir.get()
+        if v != "":
+            cmd += f"Z{v}"
+            ok = True
+
+        v = ProbeCommonFrame.probeFeed.get()
+        if v != "":
+            cmd += f"F{v}"
+
+        if ok:
+            self.sendGCode(cmd)
+        else:
+            messagebox.showerror(
+                _("Probe Error"),
+                _("At least one probe direction should be specified")
+            )
+
+    # -----------------------------------------------------------------------
+    # Rapid move to the last probed location
+    # -----------------------------------------------------------------------
+    def goto2Probe(self, event=None):
+        try:
+            cmd = "G53 G0 X{:g} Y{:g} Z{:g}\n".format(
+                CNC.vars["prbx"],
+                CNC.vars["prby"],
+                CNC.vars["prbz"],
+            )
+        except Exception:
+            return
+        self.sendGCode(cmd)
 
     # ------------------------------------------------------------------------
     def tloSet(self, event=None):
@@ -527,110 +704,6 @@ class ProbeFrame(CNCRibbon.PageFrame):
         self.recsiz.set(10)
         self.recsiz.pack(side=BOTTOM, expand=YES, fill=X)
         self.addWidget(self.recsiz)
-
-        # ----------------------------------------------------------------
-        # Single probe
-        # ----------------------------------------------------------------
-        lframe = tkExtra.ExLabelFrame(
-            self, text=_("Probe"), foreground="DarkBlue")
-        lframe.pack(side=TOP, fill=X)
-
-        row, col = 0, 0
-        Label(lframe(), text=_("Probe:")).grid(row=row, column=col, sticky=E)
-
-        col += 1
-        self._probeX = Label(
-            lframe(), foreground="DarkBlue", background="gray90")
-        self._probeX.grid(row=row, column=col, padx=1, sticky=EW + S)
-
-        col += 1
-        self._probeY = Label(
-            lframe(), foreground="DarkBlue", background="gray90")
-        self._probeY.grid(row=row, column=col, padx=1, sticky=EW + S)
-
-        col += 1
-        self._probeZ = Label(
-            lframe(), foreground="DarkBlue", background="gray90")
-        self._probeZ.grid(row=row, column=col, padx=1, sticky=EW + S)
-
-        # ---
-        col += 1
-        self.probeautogotonext = False
-        self.probeautogoto = IntVar()
-        self.autogoto = Checkbutton(
-            lframe(),
-            "",
-            variable=self.probeautogoto,
-            activebackground="LightYellow",
-            padx=2,
-            pady=1,
-        )
-        self.autogoto.select()
-        tkExtra.Balloon.set(self.autogoto, _("Automatic GOTO after probing"))
-        self.autogoto.grid(row=row, column=col, padx=1, sticky=EW)
-        self.addWidget(self.autogoto)
-
-        # ---
-        col += 1
-        b = Button(
-            lframe(),
-            image=Utils.icons["rapid"],
-            text=_("Goto"),
-            compound=LEFT,
-            command=self.goto2Probe,
-            padx=5,
-            pady=0,
-        )
-        b.grid(row=row, column=col, padx=1, sticky=EW)
-        self.addWidget(b)
-        tkExtra.Balloon.set(b, _("Rapid goto to last probe location"))
-
-        # ---
-        row, col = row + 1, 0
-        Label(lframe(), text=_("Pos:")).grid(row=row, column=col, sticky=E)
-
-        col += 1
-        self.probeXdir = tkExtra.FloatEntry(
-            lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND
-        )
-        self.probeXdir.grid(row=row, column=col, sticky=EW)
-        tkExtra.Balloon.set(self.probeXdir, _("Probe along X direction"))
-        self.addWidget(self.probeXdir)
-
-        col += 1
-        self.probeYdir = tkExtra.FloatEntry(
-            lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND
-        )
-        self.probeYdir.grid(row=row, column=col, sticky=EW)
-        tkExtra.Balloon.set(self.probeYdir, _("Probe along Y direction"))
-        self.addWidget(self.probeYdir)
-
-        col += 1
-        self.probeZdir = tkExtra.FloatEntry(
-            lframe(), background=tkExtra.GLOBAL_CONTROL_BACKGROUND
-        )
-        self.probeZdir.grid(row=row, column=col, sticky=EW)
-        tkExtra.Balloon.set(self.probeZdir, _("Probe along Z direction"))
-        self.addWidget(self.probeZdir)
-
-        # ---
-        col += 2
-        b = Button(
-            lframe(),  # "<<Probe>>",
-            image=Utils.icons["probe32"],
-            text=_("Probe"),
-            compound=LEFT,
-            command=self.probe,
-            padx=5,
-            pady=0,
-        )
-        b.grid(row=row, column=col, padx=1, sticky=EW)
-        self.addWidget(b)
-        tkExtra.Balloon.set(b, _("Perform a single probe cycle"))
-
-        lframe().grid_columnconfigure(1, weight=1)
-        lframe().grid_columnconfigure(2, weight=1)
-        lframe().grid_columnconfigure(3, weight=1)
 
         # ----------------------------------------------------------------
         # Center probing
@@ -861,32 +934,13 @@ class ProbeFrame(CNCRibbon.PageFrame):
 
     # -----------------------------------------------------------------------
     def loadConfig(self):
-        self.probeXdir.set(Utils.getStr("Probe", "x"))
-        self.probeYdir.set(Utils.getStr("Probe", "y"))
-        self.probeZdir.set(Utils.getStr("Probe", "z"))
         self.diameter.set(Utils.getStr("Probe", "center"))
         self.warn = Utils.getBool("Warning", "probe", self.warn)
 
     # -----------------------------------------------------------------------
     def saveConfig(self):
-        Utils.setFloat("Probe", "x", self.probeXdir.get())
-        Utils.setFloat("Probe", "y", self.probeYdir.get())
-        Utils.setFloat("Probe", "z", self.probeZdir.get())
         Utils.setFloat("Probe", "center", self.diameter.get())
         Utils.setBool("Warning", "probe", self.warn)
-
-    # -----------------------------------------------------------------------
-    def updateProbe(self):
-        try:
-            self._probeX["text"] = CNC.vars.get("prbx")
-            self._probeY["text"] = CNC.vars.get("prby")
-            self._probeZ["text"] = CNC.vars.get("prbz")
-        except Exception:
-            return
-
-        if self.probeautogotonext:
-            self.probeautogotonext = False
-            self.goto2Probe()
 
     # -----------------------------------------------------------------------
     def warnMessage(self):
@@ -902,52 +956,6 @@ class ProbeFrame(CNCRibbon.PageFrame):
             )
             if ans != YES:
                 self.warn = False
-
-    # -----------------------------------------------------------------------
-    # Probe one Point
-    # -----------------------------------------------------------------------
-    def probe(self, event=None):
-        if self.probeautogoto.get() == 1:
-            self.probeautogotonext = True
-
-        if ProbeCommonFrame.probeUpdate():
-            messagebox.showerror(
-                _("Probe Error"),
-                _("Invalid probe feed rate"),
-                parent=self.winfo_toplevel(),
-            )
-            return
-        self.warnMessage()
-
-        cmd = str(CNC.vars["prbcmd"])
-        ok = False
-
-        v = self.probeXdir.get()
-        if v != "":
-            cmd += f"X{v}"
-            ok = True
-
-        v = self.probeYdir.get()
-        if v != "":
-            cmd += f"Y{v}"
-            ok = True
-
-        v = self.probeZdir.get()
-        if v != "":
-            cmd += f"Z{v}"
-            ok = True
-
-        v = ProbeCommonFrame.probeFeed.get()
-        if v != "":
-            cmd += f"F{v}"
-
-        if ok:
-            self.sendGCode(cmd)
-        else:
-            messagebox.showerror(
-                _("Probe Error"),
-                _("At least one probe direction should be specified")
-            )
 
     # -----------------------------------------------------------------------
     # Rapid move to the last probed location
