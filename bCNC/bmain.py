@@ -75,6 +75,7 @@ from CNCRibbon import Page
 from ControlPage import ControlPage
 from EditorPage import EditorPage
 from FilePage import FilePage
+from Mqtt import Mqtt
 from ProbePage import ProbePage
 from Sender import NOT_CONNECTED, STATECOLOR, STATECOLORDEF, Sender
 from TerminalPage import TerminalPage
@@ -159,6 +160,7 @@ class Application(Tk, Sender):
         self.tools = Tools(self.gcode)
         self.controller = None
         self.loadConfig()
+        self.mqtt = Mqtt()
         # --- Ribbon ---
         self.ribbon = Ribbon.TabRibbonFrame(self)
         self.ribbon.pack(side=TOP, fill=X)
@@ -549,6 +551,8 @@ class Application(Tk, Sender):
         if _openserial and Utils.getBool("Connection", "openserial"):
             self.openClose()
 
+        self.mqtt.start()
+
         # Filedialog Load history
         for i in range(Utils._maxRecent):
             filename = Utils.getRecent(i)
@@ -671,6 +675,7 @@ class Application(Tk, Sender):
         self.configWidgets("state", NORMAL)
         self.statusbar.clear()
         self.statusbar.config(background="LightGray")
+        self.mqtt.clear()
         self.bufferbar.clear()
         self.bufferbar.config(background="LightGray")
         self.bufferbar.setText("")
@@ -2579,6 +2584,10 @@ class Application(Tk, Sender):
         if lines is None:
             self.statusbar.setLimits(0, 9999)
             self.statusbar.setProgress(0, 0)
+
+            self.mqtt.setLimits(0, 9999)
+            self.mqtt.setProgress(0, 0)
+
             self._paths = self.gcode.compile(self.queue, self.checkStop)
             if self._paths is None:
                 self.emptyQueue()
@@ -2629,6 +2638,8 @@ class Application(Tk, Sender):
         self.statusbar.setLimits(0, self._runLines)
         self.statusbar.configText(fill="White")
         self.statusbar.config(background="DarkGray")
+
+        self.mqtt.setLimits(0, self._runLines)
 
         self.bufferbar.configText(fill="White")
         self.bufferbar.config(background="DarkGray")
@@ -2804,6 +2815,9 @@ class Application(Tk, Sender):
 
         if self.running:
             self.statusbar.setProgress(
+                self._runLines - self.queue.qsize(), self._gcount
+            )
+            self.mqtt.setProgress(
                 self._runLines - self.queue.qsize(), self._gcount
             )
             CNC.vars["msg"] = self.statusbar.msg
