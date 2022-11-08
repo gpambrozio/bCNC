@@ -534,6 +534,7 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
         if self.probeautozeronext:
             self.probeautozeronext = False
             self.app.mcontrol._wcsSet(None, None, f"{ProbeCommonFrame.probeSize.get()}", None, None, None)
+            self.sendGCode("G0F100000")
 
     # -----------------------------------------------------------------------
     # Probe one Point
