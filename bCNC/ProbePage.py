@@ -361,6 +361,25 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
         b.grid(row=row, column=col, sticky=EW)
         self.addWidget(b)
 
+        # ----
+        # Probe size
+        row += 1
+        col = 0
+        Label(frame, text=_("Probe Size")).grid(row=row, column=col, sticky=E)
+        col += 1
+        ProbeCommonFrame.probeSize = tkExtra.FloatEntry(
+            frame, background=tkExtra.GLOBAL_CONTROL_BACKGROUND
+        )
+        ProbeCommonFrame.probeSize.grid(row=row, column=col, sticky=EW)
+        tkExtra.Balloon.set(
+            ProbeCommonFrame.probeSize, _("Set probe tool size"))
+        self.addWidget(ProbeCommonFrame.probeSize)
+
+        col += 1
+        b = Button(frame, text=_("set"), command=self.tloSet, padx=2, pady=1)
+        b.grid(row=row, column=col, sticky=EW)
+        self.addWidget(b)
+
         # ---
         # feed command
         row += 1
@@ -515,7 +534,7 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 
         if self.probeautozeronext:
             self.probeautozeronext = False
-            self.app.mcontrol._wcsSet("0", "0", "0", None, None, None)
+            self.app.mcontrol._wcsSet(None, None, f"{ProbeCommonFrame.probeSize.get()}", None, None, None)
 
     # -----------------------------------------------------------------------
     # Probe one Point
@@ -623,6 +642,7 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
                        "fastfeed", ProbeCommonFrame.fastProbeFeed.get())
         Utils.setFloat("Probe", "feed", ProbeCommonFrame.probeFeed.get())
         Utils.setFloat("Probe", "tlo", ProbeCommonFrame.tlo.get())
+        Utils.setFloat("Probe", "probeSize", ProbeCommonFrame.probeSize.get())
         Utils.setFloat("Probe", "cmd",
                        ProbeCommonFrame.probeCmd.get().split()[0])
 
@@ -635,6 +655,7 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
         ProbeCommonFrame.fastProbeFeed.set(Utils.getFloat("Probe", "fastfeed"))
         ProbeCommonFrame.probeFeed.set(Utils.getFloat("Probe", "feed"))
         ProbeCommonFrame.tlo.set(Utils.getFloat("Probe", "tlo"))
+        ProbeCommonFrame.probeSize.set(Utils.getFloat("Probe", "probeSize"))
         cmd = Utils.getStr("Probe", "cmd")
         for p in PROBE_CMD:
             if p.split()[0] == cmd:
