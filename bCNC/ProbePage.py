@@ -615,6 +615,10 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 
     # -----------------------------------------------------------------------
     def saveConfig(self):
+        Utils.setFloat("Probe", "x", self.probeXdir.get())
+        Utils.setFloat("Probe", "y", self.probeYdir.get())
+        Utils.setFloat("Probe", "z", self.probeZdir.get())
+
         Utils.setFloat("Probe",
                        "fastfeed", ProbeCommonFrame.fastProbeFeed.get())
         Utils.setFloat("Probe", "feed", ProbeCommonFrame.probeFeed.get())
@@ -624,6 +628,10 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
 
     # -----------------------------------------------------------------------
     def loadConfig(self):
+        self.probeXdir.set(Utils.getStr("Probe", "x"))
+        self.probeYdir.set(Utils.getStr("Probe", "y"))
+        self.probeZdir.set(Utils.getStr("Probe", "z"))
+
         ProbeCommonFrame.fastProbeFeed.set(Utils.getFloat("Probe", "fastfeed"))
         ProbeCommonFrame.probeFeed.set(Utils.getFloat("Probe", "feed"))
         ProbeCommonFrame.tlo.set(Utils.getFloat("Probe", "tlo"))
