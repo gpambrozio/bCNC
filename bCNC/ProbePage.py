@@ -437,6 +437,7 @@ class ProbeCommonFrame(CNCRibbon.PageFrame):
             padx=2,
             pady=1,
         )
+        self.autogoto.select()
         tkExtra.Balloon.set(self.autogoto, _("Automatic GOTO after probing"))
         self.autogoto.grid(row=row, column=col, padx=1, sticky=EW)
         self.addWidget(self.autogoto)
