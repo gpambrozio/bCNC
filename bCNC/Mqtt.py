@@ -82,7 +82,7 @@ class Mqtt():
 		for block in gcode.blocks:
 			if block.enable:
 				t += block.time
-		self.gcodeS = t
+		self.gcodeS = t * 60
 
 	def setProgress(self, now, done=None):
 		self.now = now
