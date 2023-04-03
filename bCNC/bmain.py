@@ -2402,6 +2402,7 @@ class Application(Tk, Sender):
             f"{Utils.__prg__} {__version__}: {self.gcode.filename} "
             + f"{__platform_fingerprint__}"
         )
+        self.mqtt.updateGCode(self.gcode)
 
     # -----------------------------------------------------------------------
     def save(self, filename):

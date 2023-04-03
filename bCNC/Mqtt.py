@@ -44,6 +44,7 @@ class Mqtt():
 			return
 
 		self.setLimits()
+		self.gcodeS = 0
 		self.connected = False
 		self.client = mqtt.Client("bCNC")
 		self.client.on_connect = self.on_connect
@@ -75,6 +76,13 @@ class Mqtt():
 		self.done   = float(low)
 		self.now    = float(low)
 		self.t0     = time.time()
+
+	def updateGCode(self, gcode):
+		t = 0
+		for block in self.gcode.blocks:
+			if block.enable:
+				t += block.time
+		self.gcodeS = t
 
 	def setProgress(self, now, done=None):
 		self.now = now
@@ -115,6 +123,7 @@ class Mqtt():
 		remain = max(0.0, total - dt)
 		jsonToSend["remain_s"] = remain
 		jsonToSend["total_s"] = total
+		jsonToSend[ "gcode_s"] = self.gcodeS
 
 		if self.lastSentState != jsonToSend:
 			self.lastSentState = jsonToSend
