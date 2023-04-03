@@ -79,7 +79,7 @@ class Mqtt():
 
 	def updateGCode(self, gcode):
 		t = 0
-		for block in self.gcode.blocks:
+		for block in gcode.blocks:
 			if block.enable:
 				t += block.time
 		self.gcodeS = t
