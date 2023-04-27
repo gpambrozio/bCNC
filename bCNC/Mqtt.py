@@ -121,6 +121,7 @@ class Mqtt():
 		else:
 			total = 0.0
 		remain = max(0.0, total - dt)
+		jsonToSend["done_s"] = dt
 		jsonToSend["remain_s"] = remain
 		jsonToSend["total_s"] = total
 		jsonToSend[ "gcode_s"] = self.gcodeS
