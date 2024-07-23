@@ -25,7 +25,7 @@ __author__ = "Vasilis Vlachoudis"
 __email__ = "Vasilis.Vlachoudis@cern.ch"
 
 HOSTNAME = "localhost"
-port = 8080
+port = 8088
 
 httpd = None
 webpath = f"{prgpath}/pendant"
